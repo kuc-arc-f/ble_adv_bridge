@@ -4,10 +4,11 @@
 EventGroupHandle_t wifi_event_group;
 const int CONNECTED_BIT = BIT0;
 
-const char *TAG_HTTP_TASK = "HTTP_GET";
+//static const char *TAG = "example";
+static const char *TAG_HTTP_TASK = "HTTP_GET";
 
-#define EXAMPLE_WIFI_SSID "your-SSID"
-#define EXAMPLE_WIFI_PASS "your-pass"
+#define EXAMPLE_WIFI_SSID "your-pass"
+#define EXAMPLE_WIFI_PASS "your-SSID"
 
 /* Constants that aren't configurable in menuconfig */
 #define WEB_SERVER "api.thingspeak.com"
@@ -16,15 +17,46 @@ const char *TAG_HTTP_TASK = "HTTP_GET";
 	
 #define mAPI_KEY "your-KEY"
 
-char mHttpBuff[32];
+//char mHttpBuff[32];
+char mRequestBuff[128+1];
+
+//deep-sleep
+#define GPIO_INPUT_IO_TRIGGER     0  // There is the Button on GPIO 0
+#define GPIO_DEEP_SLEEP_DURATION     15  // sleep XX seconds and then wake up
+RTC_DATA_ATTR static time_t last;        // remember last boot in RTC Memory
+
 
 static const char *REQUEST_2="User-Agent: esp-idf/1.0 esp32\n"
     "\n";
 //
-void set_HttpBuff(char* src){
-    strcpy(mHttpBuff ,src);
+void set_requestBuff(char* src){
+	strcpy(mRequestBuff,  src );
 }
-	
+
+//
+//void exec_deepSleep(){
+void http_execDeepSleep(){
+	struct timeval now;
+
+	printf("start Deep Sleep\n");
+	gettimeofday(&now, NULL);
+	printf("deep sleep (%lds since last reset, %lds since last boot)\n",now.tv_sec,now.tv_sec-last);
+	last = now.tv_sec;
+
+	printf("config Timer\n");
+	esp_deep_sleep_enable_timer_wakeup(1000000LL * GPIO_DEEP_SLEEP_DURATION); // set timer but don't sleep now
+
+	printf("config IO\n");
+	esp_deep_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_AUTO); //!< Keep power domain enabled in deep sleep, if it is needed by one of the wakeup options. Otherwise power it down.
+	gpio_pullup_en(GPIO_INPUT_IO_TRIGGER);		// use pullup on GPIO
+	gpio_pulldown_dis(GPIO_INPUT_IO_TRIGGER);       // not use pulldown on GPIO
+
+	esp_deep_sleep_enable_ext0_wakeup(GPIO_INPUT_IO_TRIGGER, 0); // Wake if GPIO is low
+
+	printf("deep sleep #Start#\n");
+	esp_deep_sleep_start();	
+}
+
 //
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -68,7 +100,9 @@ void initialise_wifi(void)
 }
 
 //
-void http_get_task(void *pvParameters)
+// 
+//void http_get_task(void *pvParameters, char *req_1)
+void http_get_task(void *pvParameters )
 {
     const struct addrinfo hints = {
         .ai_family = AF_INET,
@@ -81,7 +115,6 @@ void http_get_task(void *pvParameters)
 
     while(1) {
     	//check-HttpBuff
-    	if(strlen(mHttpBuff) >0){
 	        xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT,
 	                            false, true, portMAX_DELAY);
 	        ESP_LOGI(TAG_HTTP_TASK, "Connected to AP");
@@ -115,10 +148,11 @@ void http_get_task(void *pvParameters)
 	        ESP_LOGI(TAG_HTTP_TASK, "... connected");
 	        freeaddrinfo(res);
 	        //reqest        
-			char sReq1[64+1];
+			char sReq1[256+1];
 			char sReq2[64+1];
-			char sBuff[128+1];
-			sprintf(sReq1, "GET %s/update?key=%s&field1=%s  HTTP/1.1\n" ,  WEB_URL, mAPI_KEY , mHttpBuff );
+			char sBuff[512+1];
+//			sprintf(sReq1, "GET %s/update?key=%s&%s  HTTP/1.1\n" ,  WEB_URL, mAPI_KEY , mRequestBuff );
+			sprintf(sReq1, "GET %s/update?key=%s%s  HTTP/1.1\n" ,  WEB_URL, mAPI_KEY , mRequestBuff );
 			sprintf(sReq2, "Host:  %s \n" ,  WEB_SERVER);
 			sprintf(sBuff, "%s%s%s" ,  sReq1, sReq2, REQUEST_2 );
 			printf("%s", sBuff);
@@ -135,25 +169,23 @@ void http_get_task(void *pvParameters)
 	            bzero(recv_buf, sizeof(recv_buf));
 	            r = read(s, recv_buf, sizeof(recv_buf)-1);
 	            for(int i = 0; i < r; i++) {
-	                putchar(recv_buf[i]);
+	                // putchar(recv_buf[i]);
 	            }
 	        } while(r > 0);
 
 	        ESP_LOGI(TAG_HTTP_TASK, "... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
 	        close(s);
-    		//reset-buff
-    		mHttpBuff[0]='\0';
-    		/*
-	        for(int countdown = 60; countdown >= 0; countdown--) {
-	            ESP_LOGI(TAG_HTTP_TASK, "%d... ", countdown);
-	            ESP_LOGI(TAG_HTTP_TASK, "mHttpBuff=%s\n ", mHttpBuff );
+	        /*
+	        for(int countdown = 10; countdown >= 0; countdown--) {
+	            ESP_LOGI(TAG_HTTP_TASK , "%d... ", countdown);
 	            vTaskDelay(1000 / portTICK_PERIOD_MS);
 	        }
-    		*/
+	        */
+    		//reset-buff
 	        ESP_LOGI(TAG_HTTP_TASK, "Starting again!");    		
-	        return;
-    	}
-         vTaskDelay(1000 / portTICK_PERIOD_MS);
+//            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            http_execDeepSleep();
+         return;
     } //end_while
 }
 

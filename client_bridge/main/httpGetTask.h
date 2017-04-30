@@ -6,7 +6,9 @@
    software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
    CONDITIONS OF ANY KIND, either express or implied.
 */
+#include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -16,6 +18,10 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 
+#include "sys/time.h"
+#include "sdkconfig.h"
+#include "esp_deep_sleep.h"
+	
 #include "lwip/err.h"
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
@@ -27,8 +33,11 @@
 esp_err_t event_handler(void *ctx, system_event_t *event);
 void initialise_wifi(void);
 
-//static void http_get_task(void *pvParameters);
 void http_get_task(void *pvParameters);
+//void http_get_task(void *pvParameters, char *req_1);
+
 void set_HttpBuff(char* src);
 
+void set_requestBuff(char* src);
+void http_execDeepSleep();
 

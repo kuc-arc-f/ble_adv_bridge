@@ -43,6 +43,7 @@
 #include "esp_system.h"
 #include "nvs_flash.h"
 #include "httpGetTask.h"
+#include "dataModel.h"
 	
 #define BT_BD_ADDR_STR         "%02x:%02x:%02x:%02x:%02x:%02x"
 #define BT_BD_ADDR_HEX(addr)   addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]
@@ -50,16 +51,20 @@
 #define TEST_SRV_UUID			0x00FF
 #define TEST_CHAR_UUID			0xFF01
 
+
 static esp_gatt_if_t client_if;
 static uint16_t client_conn = 0;
 esp_gatt_status_t status = ESP_GATT_ERROR;
 bool connet = false;
 uint16_t simpleClient_id = 0xEE;
-int mStopFlg=0;
-char mRecvData[6+1];
-//const char device_name[] = "ESP-BLE-HELLO";
-const char device_name[] = "D01";
+static int mStopFlg=0;
+static unsigned long nMaxSec=15;
+static int nCount=0;
 
+const char *adv_name1="D01";
+const char *adv_name2="D02";
+const char *adv_name3="D03";
+	
 static char tar_dev_mac[6] = {0xff, 0xb5, 0x30, 0x4e, 0x0a, 0xcb};
 static const char tar_char[] = {0x9e, 0xca, 0xdc, 0x24, 0x0e, 0xe5, 0xa9, 0xe0, 0x93, 0xf3, 0xa3, 0xb5, 0x03, 0x00, 0x40, 0x6e};
 static const char write_char[] = {0x6e, 0x40, 0x00, 0x03, 0xb5, 0xa3, 0xf3, 0x93, 0xe0, 0xa9, 0xe5, 0x0e, 0x24, 0xdc, 0xca, 0x9e};
@@ -96,8 +101,6 @@ static esp_gatt_id_t notify_descr_id = {
 };
 
 static bool task_run = false;
-static TaskHandle_t ledTaskHandle = NULL;
-// static uint8_t toggle = 0;
 
 static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
 static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param);
@@ -181,19 +184,43 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             LOG_INFO("adv_name=%s\n" , (char *)adv_name);
             int iLenAdv= sizeof(scan_result->scan_rst.ble_adv);
             printf("size=%d\n" ,  iLenAdv );
-            int iNameLen= 3;
+            const int iNameLen= 3;
             const int iBuufLen=6;
-			for(int n=0; n< iBuufLen ; n++){
-				mRecvData[n] = adv_name[n+ iNameLen ];				
+			char cTmpName[3+1];
+			char cTmpData[6+1];
+			char cTmpData2[6+1];
+			char cTmpData3[6+1];
+			for(int j=0; j< iNameLen ; j++){
+				cTmpName[j]= adv_name[j];
 			}
-			mRecvData[6]='\0';			
-            printf("mRecvData=%s\n", mRecvData );
-            /*for (int j = 0; j < adv_name_len; j++) {
-                LOG_INFO("a%d %x %c = d%d %x %c",j, adv_name[j], adv_name[j],j, device_name[j], device_name[j]);
-            }*/
-            int device_name_len=strlen(device_name);
-			if (strncmp((char *)adv_name, device_name, device_name_len) == 0 && connet == false) {
-//			if (strncmp((char *)adv_name, device_name,adv_name_len) == 0 && connet == false) {
+			cTmpName[3]='\0';
+			printf("cTmpName =%s\n",cTmpName );
+            //dat-1
+			for(int n=0; n< iBuufLen ; n++){
+				cTmpData[n] = adv_name[n+ iNameLen ];				
+			}
+			cTmpData[6]='\0';	
+			dataModel_set_datByAdvname( (char *)cTmpName, (char *)cTmpData, 1);
+						
+			printf("cTmpData =%s\n", cTmpData );
+			//dat-2
+			for(int q=0; q< iBuufLen ; q++){
+				cTmpData2[q] = adv_name[ q+ iNameLen+ (iBuufLen) ];				
+			}
+			cTmpData2[6]='\0';
+
+			dataModel_set_datByAdvname( (char *)cTmpName, (char *)cTmpData2, 2);
+			printf("cTmpData2 =%s\n", cTmpData2 );
+			//dat-3
+			for(int j2=0; j2< iBuufLen ; j2++){
+				cTmpData3[j2 ] = adv_name[ j2+ iNameLen+ (iBuufLen * 2) ];				
+			}
+			cTmpData3[6]='\0';
+			dataModel_set_datByAdvname( (char *)cTmpName, (char *)cTmpData3, 3);
+			printf("cTmpData3 =%s\n", cTmpData3 );
+
+			dataModel_debug_printDat();
+			if (dataModel_isComplete() == 1 && connet == false) {
 				connet = true;
 				ESP_LOGI(TAG, "==> address type: %d, dev name: %s", scan_result->scan_rst.ble_addr_type, adv_name);
                 LOG_INFO("Connect to the remote device.");
@@ -617,48 +644,74 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
         break;
     }
 }
+
 //
 void proc_httpStart(){
-    ESP_ERROR_CHECK( nvs_flash_init() );
-    initialise_wifi();
-    set_HttpBuff( mRecvData );
-    http_get_task(0);
+    char sReq1[256 +1];
+    char cValue[6+1];
+    char cValue2[6+1];
+    char cValue3[6+1];
+    char cValue2_1[6+1];
+    char cValue2_2[6+1];
+    char cValue2_3[6+1];
+    
+    //d1
+    dataModel_get_datByAdvname((char *)adv_name1 ,1 , cValue );
+    printf("cValue=%s\n", cValue);
+    dataModel_get_datByAdvname((char *)adv_name1 ,2 , cValue2 );
+    printf("cValue2=%s\n", cValue2 );
+    dataModel_get_datByAdvname((char *)adv_name1 ,3 , cValue3 );
+    printf("cValue3=%s\n", cValue3 );
+    //d2
+    dataModel_get_datByAdvname((char *)adv_name2 ,1 , cValue2_1 );
+    dataModel_get_datByAdvname((char *)adv_name2 ,2 , cValue2_2 );
+    dataModel_get_datByAdvname((char *)adv_name2 ,3 , cValue2_3 );
+    char cBuff[24+1];
+    sReq1[0]=0x00;
+    //d1
+    if( strlen(cValue) > 0){
+    	sprintf(cBuff, "&field1=%s", cValue);
+    	strcat(sReq1, cBuff );
+    }
+    if( strlen(cValue2) > 0){
+    	sprintf(cBuff, "&field2=%s", cValue2 );
+    	strcat(sReq1, cBuff );
+    }
+    if( strlen(cValue3) > 0){
+    	sprintf(cBuff, "&field3=%s", cValue3 );
+    	strcat(sReq1, cBuff );
+    }
+    //d2
+    if( strlen(cValue2_1 ) > 0){
+    	sprintf(cBuff, "&field4=%s", cValue2_1);
+    	strcat(sReq1, cBuff );
+    }
+    if( strlen(cValue2_2 ) > 0){
+    	sprintf(cBuff, "&field5=%s", cValue2_2 );
+    	strcat(sReq1, cBuff );
+    }
+    if( strlen(cValue2_3 ) > 0){
+    	sprintf(cBuff, "&field6=%s", cValue2_3 );
+    	strcat(sReq1, cBuff );
+    }
+
+//    sprintf(sReq1, "field1=%s&field2=%s" ,  cValue, cValue2 );
+    set_requestBuff( sReq1 );
+    printf("sReq1=%s\n" ,sReq1 );
+    xTaskCreate(&http_get_task, "http_get_task", 4096, NULL, 5, NULL);
+    cValue[0]=0x00;
+    cValue2[0]=0x00;
+    cValue3[0]=0x00;
 }
 //
-static void restart_task(void *arg)
-{
-	unsigned long nMaxSec=30;
-	int nCount=0;
-	while (1) {
-		ESP_LOGI(TAG, "restart_task is running, nCount=%d\n", nCount);
-		vTaskDelay(1000 / portTICK_RATE_MS);
-		if((nCount > nMaxSec) || (mStopFlg==1) ){ 
-			if(mStopFlg==1){
-//				for (int i = 10; i >= 0; i--) {
-			    for (int i = 60; i >= 0; i--) {
-			        printf("Restarting in %d seconds...\n", i);
-			        vTaskDelay(1000 / portTICK_PERIOD_MS);
-			    }
-			    proc_httpStart();
-			}
-			fflush(stdout);
-			esp_restart();
-		}
-		nCount=nCount +1;
-	}
-	vTaskDelete(NULL);
-}
-
 void ble_client_appRegister(void)
 {
     LOG_INFO("register callback");
-
     //register the scan callback function to the Generic Access Profile (GAP) module
     if ((status = esp_ble_gap_register_callback(esp_gap_cb)) != ESP_OK) {
         LOG_ERROR("gap register error, error code = %x", status);
         return;
     }
-
     //register the callback function to the Generic Attribute Profile (GATT) Client (GATTC) module
     if ((status = esp_ble_gattc_register_callback(esp_gattc_cb)) != ESP_OK) {
         LOG_ERROR("gattc register error, error code = %x", status);
@@ -674,15 +727,40 @@ void gattc_client_test(void)
     esp_bluedroid_enable();
     ble_client_appRegister();
 }
+
 //
 void app_main()
 {
+	//data
+	dataModel_set_advName(0,  (char *)"D01" );
+	dataModel_set_advName(1,  (char *)"D02" );
+	//dataModel_set_advName(2,  (char *)"D03" );
+	//bt
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     esp_bt_controller_init(&bt_cfg);
     esp_bt_controller_enable(ESP_BT_MODE_BTDM);
     gattc_client_test();
 
-//	xTaskCreate(&led_task, "led_task", 2048, NULL, 6, &ledTaskHandle);
-	xTaskCreate(&restart_task, "restart_task", 2048, NULL, 6, &ledTaskHandle);
+	//WIFI
+	while (1) {
+		ESP_LOGI(TAG, "restart_task is running, nCount=%d, mStopFlg=%d\n", nCount ,mStopFlg);
+		vTaskDelay(1000 / portTICK_RATE_MS);
+		if(nCount >= nMaxSec){
+			dataModel_debug_printDat();
+		    if(dataModel_recvCount()==0 ){
+		    	http_execDeepSleep();
+		    	return;
+		    }
+			
+			ESP_ERROR_CHECK( nvs_flash_init() );
+			initialise_wifi(); 
+			for (int i = 5; i >= 0; i--) {
+		        printf("wait http-proc in %d seconds...\n", i);
+		        vTaskDelay(1000 / portTICK_PERIOD_MS);
+		    }
+		    proc_httpStart();
+		}
+		nCount=nCount +1;
+	}
 }
 

@@ -192,6 +192,7 @@ static void hci_cmd_send_ble_set_adv_data(void)
     //dht
     const int iDatMax=6;
     int iTemp =getTemp();
+    int iHum = getHumidity();
     printf("iTemp=%d\n", iTemp);
     
     uint8_t name_len = (uint8_t)strlen(adv_name);
@@ -200,13 +201,17 @@ static void hci_cmd_send_ble_set_adv_data(void)
     //data
     char str_data[6]  = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     char str_data2[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    char str_data3[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     sprintf(str_data, "%06d", iTemp);
-    sprintf(str_data2, "%06d", 99);
+    sprintf(str_data2, "%06d", iHum);
+    sprintf(str_data3, "%06d", 0 );
     
     uint8_t iDat_len = (uint8_t)strlen(str_data);
     uint8_t iDat_len2 = (uint8_t)strlen(str_data2);
-
-    adv_data[3] = (name_len+ iDat_len +iDat_len2) + 1;
+    uint8_t iDat_len3 = (uint8_t)strlen(str_data3);
+    
+//    adv_data[3] = (name_len+ iDat_len +iDat_len2) + 1;
+    adv_data[3] = (name_len+ iDat_len +iDat_len2+ iDat_len3) + 1;
     for (int i = 0; i < name_len; i++) {
         adv_data[5 + i] = (uint8_t)adv_name[i];
     }
@@ -219,10 +224,15 @@ static void hci_cmd_send_ble_set_adv_data(void)
     for (int k = 0; k < iDatMax ; k++) {
     	adv_data[iStpos  + k] =(uint8_t )str_data2[k];
     }
+    //d3
+    int iStpos2 =5+name_len + (iDatMax * 2 );
+    for (int k2 = 0; k2 < iDatMax ; k2++) {
+    	adv_data[iStpos2  + k2] =(uint8_t )str_data3[k2];
+    }
     //debug
-
     printf("adv_data=%s\n",adv_data);
-    adv_data_len = 5 + name_len + (iDat_len + iDat_len2 );
+//    adv_data_len = 5 + name_len + (iDat_len + iDat_len2 );
+    adv_data_len = 5 + name_len + (iDat_len + iDat_len2 +iDat_len3);
     uint16_t sz = make_cmd_ble_set_adv_data(hci_cmd_buf, adv_data_len, (uint8_t *)adv_data);
     esp_vhci_host_send_packet(hci_cmd_buf, sz);
 }
