@@ -7,22 +7,23 @@ const int CONNECTED_BIT = BIT0;
 //static const char *TAG = "example";
 static const char *TAG_HTTP_TASK = "HTTP_GET";
 
-#define EXAMPLE_WIFI_SSID "your-pass"
-#define EXAMPLE_WIFI_PASS "your-SSID"
+#define EXAMPLE_WIFI_SSID "aterm-b1f792-g"
+#define EXAMPLE_WIFI_PASS "6c600f2ccfc11"
 
 /* Constants that aren't configurable in menuconfig */
 #define WEB_SERVER "api.thingspeak.com"
 #define WEB_PORT 80
 #define WEB_URL "http://api.thingspeak.com"
-	
-#define mAPI_KEY "your-KEY"
 
+// #define mAPI_KEY "ZCFWL7ALQKDITNR0"
+#define mAPI_KEY "VJUA0Z625TNRAN1N"
 //char mHttpBuff[32];
 char mRequestBuff[128+1];
 
 //deep-sleep
 #define GPIO_INPUT_IO_TRIGGER     0  // There is the Button on GPIO 0
-#define GPIO_DEEP_SLEEP_DURATION     15  // sleep XX seconds and then wake up
+// #define GPIO_DEEP_SLEEP_DURATION     15  // sleep XX seconds and then wake up
+#define GPIO_DEEP_SLEEP_DURATION     3  // sleep XX seconds and then wake up
 RTC_DATA_ATTR static time_t last;        // remember last boot in RTC Memory
 
 
@@ -151,7 +152,6 @@ void http_get_task(void *pvParameters )
 			char sReq1[256+1];
 			char sReq2[64+1];
 			char sBuff[512+1];
-//			sprintf(sReq1, "GET %s/update?key=%s&%s  HTTP/1.1\n" ,  WEB_URL, mAPI_KEY , mRequestBuff );
 			sprintf(sReq1, "GET %s/update?key=%s%s  HTTP/1.1\n" ,  WEB_URL, mAPI_KEY , mRequestBuff );
 			sprintf(sReq2, "Host:  %s \n" ,  WEB_SERVER);
 			sprintf(sBuff, "%s%s%s" ,  sReq1, sReq2, REQUEST_2 );
@@ -183,7 +183,6 @@ void http_get_task(void *pvParameters )
 	        */
     		//reset-buff
 	        ESP_LOGI(TAG_HTTP_TASK, "Starting again!");    		
-//            vTaskDelay(1000 / portTICK_PERIOD_MS);
             http_execDeepSleep();
          return;
     } //end_while

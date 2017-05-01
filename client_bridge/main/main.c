@@ -58,7 +58,8 @@ esp_gatt_status_t status = ESP_GATT_ERROR;
 bool connet = false;
 uint16_t simpleClient_id = 0xEE;
 static int mStopFlg=0;
-static unsigned long nMaxSec=15;
+// static unsigned long nMaxSec=15;
+static unsigned long nMaxSec=12;
 static int nCount=0;
 
 const char *adv_name1="D01";
