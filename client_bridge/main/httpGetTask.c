@@ -7,16 +7,15 @@ const int CONNECTED_BIT = BIT0;
 //static const char *TAG = "example";
 static const char *TAG_HTTP_TASK = "HTTP_GET";
 
-#define EXAMPLE_WIFI_SSID "aterm-b1f792-g"
-#define EXAMPLE_WIFI_PASS "6c600f2ccfc11"
+#define EXAMPLE_WIFI_SSID "your-SSID"
+#define EXAMPLE_WIFI_PASS "your-pass"
 
 /* Constants that aren't configurable in menuconfig */
 #define WEB_SERVER "api.thingspeak.com"
 #define WEB_PORT 80
 #define WEB_URL "http://api.thingspeak.com"
 
-// #define mAPI_KEY "ZCFWL7ALQKDITNR0"
-#define mAPI_KEY "VJUA0Z625TNRAN1N"
+#define mAPI_KEY "your-KEY"
 //char mHttpBuff[32];
 char mRequestBuff[128+1];
 
