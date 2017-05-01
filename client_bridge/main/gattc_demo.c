@@ -732,8 +732,8 @@ void gattc_client_test(void)
 void app_main()
 {
 	//data
-	dataModel_set_advName(0,  (char *)"D01" );
-	dataModel_set_advName(1,  (char *)"D02" );
+	dataModel_set_advName(0,  (char *)adv_name1 );
+	dataModel_set_advName(1,  (char *)adv_name2 );
 	//dataModel_set_advName(2,  (char *)"D03" );
 	//bt
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
