@@ -8,7 +8,7 @@ const int CONNECTED_BIT = BIT0;
 static const char *TAG_HTTP_TASK = "HTTP_GET";
 
 #define EXAMPLE_WIFI_SSID "your-SSID"
-#define EXAMPLE_WIFI_PASS "your-pass"
+#define EXAMPLE_WIFI_PASS "yout-PASS"
 
 /* Constants that aren't configurable in menuconfig */
 #define WEB_SERVER "api.thingspeak.com"
@@ -22,7 +22,7 @@ char mRequestBuff[128+1];
 //deep-sleep
 #define GPIO_INPUT_IO_TRIGGER     0  // There is the Button on GPIO 0
 // #define GPIO_DEEP_SLEEP_DURATION     15  // sleep XX seconds and then wake up
-#define GPIO_DEEP_SLEEP_DURATION     3  // sleep XX seconds and then wake up
+#define GPIO_DEEP_SLEEP_DURATION     5  // sleep XX seconds and then wake up
 RTC_DATA_ATTR static time_t last;        // remember last boot in RTC Memory
 
 

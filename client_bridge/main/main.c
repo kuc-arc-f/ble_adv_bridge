@@ -56,12 +56,14 @@ static esp_gatt_if_t client_if;
 static uint16_t client_conn = 0;
 esp_gatt_status_t status = ESP_GATT_ERROR;
 bool connet = false;
-uint16_t simpleClient_id = 0xEE;
+// uint16_t simpleClient_id = 0xEE;
 static int mStopFlg=0;
 // static unsigned long nMaxSec=15;
 static unsigned long nMaxSec=12;
+static const int mMaxAdvSize=26;
 static int nCount=0;
 
+static const char *TAG_BLE_CL = "BLE_CL";
 const char *adv_name1="D01";
 const char *adv_name2="D02";
 const char *adv_name3="D03";
@@ -109,39 +111,39 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
 static void get_characteristic_property(uint32_t flag)
 {
 	int i;
-	ESP_LOGI(TAG, "=======================================");
+	ESP_LOGI(TAG_BLE_CL, "=======================================");
 	for (i = 0; i < 8; i ++) {
 		switch (flag & (2 << i))
 		{
 		case ESP_GATT_CHAR_PROP_BIT_BROADCAST:
-			ESP_LOGI(TAG, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_BROADCAST");
+			ESP_LOGI(TAG_BLE_CL, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_BROADCAST");
 			break;
 		case ESP_GATT_CHAR_PROP_BIT_READ:
-			ESP_LOGI(TAG, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_READ");
+			ESP_LOGI(TAG_BLE_CL, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_READ");
 			break;
 		case ESP_GATT_CHAR_PROP_BIT_WRITE_NR:
-			ESP_LOGI(TAG, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_WRITE_NR");
+			ESP_LOGI(TAG_BLE_CL, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_WRITE_NR");
 			break;
 		case ESP_GATT_CHAR_PROP_BIT_WRITE:
-			ESP_LOGI(TAG, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_WRITE");
+			ESP_LOGI(TAG_BLE_CL, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_WRITE");
 			break;
 		case ESP_GATT_CHAR_PROP_BIT_NOTIFY:
-			ESP_LOGI(TAG, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_NOTIFY");
+			ESP_LOGI(TAG_BLE_CL, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_NOTIFY");
 			break;
 		case ESP_GATT_CHAR_PROP_BIT_INDICATE:
-			ESP_LOGI(TAG, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_INDICATE");
+			ESP_LOGI(TAG_BLE_CL, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_INDICATE");
 			break;
 		case ESP_GATT_CHAR_PROP_BIT_AUTH:
-			ESP_LOGI(TAG, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_AUTH");
+			ESP_LOGI(TAG_BLE_CL, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_AUTH");
 			break;
 		case ESP_GATT_CHAR_PROP_BIT_EXT_PROP:
-			ESP_LOGI(TAG, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_EXT_PROP");
+			ESP_LOGI(TAG_BLE_CL, "==> CHAR PROP ESP_GATT_CHAR_PROP_BIT_EXT_PROP");
 			break;
 		default:
 			break;
 		}
 	}
-	ESP_LOGI(TAG, "=======================================");
+	ESP_LOGI(TAG_BLE_CL, "=======================================");
 }
 
 static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
@@ -161,18 +163,18 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
         case ESP_GAP_SEARCH_INQ_RES_EVT:
 			switch (scan_result->scan_rst.dev_type) {
 				case ESP_BT_DEVICE_TYPE_BREDR:
-					ESP_LOGI(TAG, "==> Connected Device type BREDR");
+					ESP_LOGI(TAG_BLE_CL, "==> Connected Device type BREDR");
 					break;
 				case ESP_BT_DEVICE_TYPE_BLE:
-					ESP_LOGI(TAG, "==> Connected Device type BLE");
+					ESP_LOGI(TAG_BLE_CL, "==> Connected Device type BLE");
 					break;
 				case ESP_BT_DEVICE_TYPE_DUMO:
-					ESP_LOGI(TAG, "==> Connected Device type DUMO");
+					ESP_LOGI(TAG_BLE_CL, "==> Connected Device type DUMO");
 					break;
 				default:
 					break;
 			}
-            LOG_INFO("BDA %x,%x,%x,%x,%x,%x:",scan_result->scan_rst.bda[0],
+            ESP_LOGI(TAG_BLE_CL,"BDA %x,%x,%x,%x,%x,%x:",scan_result->scan_rst.bda[0],
             		scan_result->scan_rst.bda[1],scan_result->scan_rst.bda[2],
 					scan_result->scan_rst.bda[3],scan_result->scan_rst.bda[4],
 					scan_result->scan_rst.bda[5]);
@@ -181,20 +183,31 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             }
             adv_name = esp_ble_resolve_adv_data(scan_result->scan_rst.ble_adv,
                                                 ESP_BLE_AD_TYPE_NAME_CMPL, &adv_name_len);
-            LOG_INFO("adv_name_len=%x\n", adv_name_len);
-            LOG_INFO("adv_name=%s\n" , (char *)adv_name);
-            int iLenAdv= sizeof(scan_result->scan_rst.ble_adv);
-            printf("size=%d\n" ,  iLenAdv );
+//            LOG_INFO("adv_name_len=%x\n", adv_name_len);
+//            LOG_INFO("adv_name=%s\n" , (char *)adv_name);
+            ESP_LOGI( TAG_BLE_CL ,"adv_name_len=%x\n", adv_name_len);
+            ESP_LOGI( TAG_BLE_CL, "adv_name=%s\n" , (char *)adv_name);
+            
+            //int iLenAdv= sizeof(scan_result->scan_rst.ble_adv);
+            //printf("size=%d\n" ,  iLenAdv );
             const int iNameLen= 3;
             const int iBuufLen=6;
 			char cTmpName[3+1];
 			char cTmpData[6+1];
 			char cTmpData2[6+1];
 			char cTmpData3[6+1];
+			if(adv_name_len < mMaxAdvSize ){
+				break;
+			}
 			for(int j=0; j< iNameLen ; j++){
 				cTmpName[j]= adv_name[j];
 			}
 			cTmpName[3]='\0';
+			int iValidName= dataModel_validAdvName( (char *)cTmpName);
+//			printf("iValidName=%d\n" ,iValidName);
+			if ( iValidName == 0 ){
+				break;
+			}
 			printf("cTmpName =%s\n",cTmpName );
             //dat-1
 			for(int n=0; n< iBuufLen ; n++){
@@ -223,7 +236,7 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
 			dataModel_debug_printDat();
 			if (dataModel_isComplete() == 1 && connet == false) {
 				connet = true;
-				ESP_LOGI(TAG, "==> address type: %d, dev name: %s", scan_result->scan_rst.ble_addr_type, adv_name);
+				ESP_LOGI(TAG_BLE_CL, "==> address type: %d, dev name: %s", scan_result->scan_rst.ble_addr_type, adv_name);
                 LOG_INFO("Connect to the remote device.");
                 esp_ble_gap_stop_scanning();
                 mStopFlg=1;
@@ -235,25 +248,25 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
 			//esp_ble_gap_cb_param_t *scan_result = (esp_ble_gap_cb_param_t *)param;
 			switch (scan_result->scan_rst.ble_evt_type) {
 				 case ESP_BLE_EVT_CONN_ADV:
-					 ESP_LOGI(TAG, "==> CONN_ADV");
-					 ESP_LOGI(TAG, "BDA %x,%x,%x,%x,%x,%x:",scan_result->scan_rst.bda[0],
+					 ESP_LOGI(TAG_BLE_CL, "==> CONN_ADV");
+					 ESP_LOGI(TAG_BLE_CL, "BDA %x,%x,%x,%x,%x,%x:",scan_result->scan_rst.bda[0],
 								 scan_result->scan_rst.bda[1],scan_result->scan_rst.bda[2],
 												 scan_result->scan_rst.bda[3],scan_result->scan_rst.bda[4],
 												 scan_result->scan_rst.bda[5]);
-					 ESP_LOGI(TAG, "==> RSSI: %d", scan_result->scan_rst.rssi);
-					 ESP_LOGI(TAG, "==> address type: %d", scan_result->scan_rst.ble_addr_type);
+					 ESP_LOGI(TAG_BLE_CL, "==> RSSI: %d", scan_result->scan_rst.rssi);
+					 ESP_LOGI(TAG_BLE_CL, "==> address type: %d", scan_result->scan_rst.ble_addr_type);
 					 break;
 				 case ESP_BLE_EVT_CONN_DIR_ADV:
-					 ESP_LOGI(TAG, "==> CONN_DIR_ADV");
+					 ESP_LOGI(TAG_BLE_CL, "==> CONN_DIR_ADV");
 					 break;
 				 case ESP_BLE_EVT_DISC_ADV:
-					 ESP_LOGI(TAG, "==> DISC_ADV");
+					 ESP_LOGI(TAG_BLE_CL, "==> DISC_ADV");
 					 break;
 				 case ESP_BLE_EVT_NON_CONN_ADV:
-					 ESP_LOGI(TAG, "==> NON_CONN_ADV");
+					 ESP_LOGI(TAG_BLE_CL, "==> NON_CONN_ADV");
 					 break;
 				 case ESP_BLE_EVT_SCAN_RSP:
-					 ESP_LOGI(TAG, "==> receive scan response");
+					 ESP_LOGI(TAG_BLE_CL, "==> receive scan response");
 					 LOG_INFO("BDA %x,%x,%x,%x,%x,%x:",scan_result->scan_rst.bda[0],
 								 scan_result->scan_rst.bda[1],scan_result->scan_rst.bda[2],
 												 scan_result->scan_rst.bda[3],scan_result->scan_rst.bda[4],
@@ -498,7 +511,7 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
 			if (char_id->uuid.len == ESP_UUID_LEN_16) {
 				LOG_INFO("UUID16: %x", char_id->uuid.uuid.uuid16);
 				if (char_id->uuid.uuid.uuid16 == TEST_CHAR_UUID) {
-					ESP_LOGI(TAG, "register notify\n");
+					ESP_LOGI(TAG_BLE_CL, "register notify\n");
 					esp_ble_gattc_register_for_notify(gattc_if, p_data->open.remote_bda, &test_service_id, &p_data->get_char.char_id);
 				}
 			} else if (char_id->uuid.len == ESP_UUID_LEN_32) {
@@ -517,7 +530,7 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
 				LOG_ERROR("UNKNOWN LEN %d", char_id->uuid.len);
 			}
         } else {
-			ESP_LOGE(TAG, "get characteristic failed");
+			ESP_LOGE(TAG_BLE_CL, "get characteristic failed");
 		}
         break;
     }
@@ -598,10 +611,10 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
                 ESP_GATT_WRITE_TYPE_RSP,
                 ESP_GATT_AUTH_REQ_NONE);
 			if (err != 0) {
-				ESP_LOGE(TAG, "write char failed");
+				ESP_LOGE(TAG_BLE_CL, "write char failed");
 			}
         } else {
-			ESP_LOGE(TAG, "notify register failed");
+			ESP_LOGE(TAG_BLE_CL, "notify register failed");
 		}
         break;
     }
@@ -611,28 +624,28 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
 		esp_ble_gap_cb_param_t *scan_result = (esp_ble_gap_cb_param_t *)param;
 		switch (scan_result->scan_rst.ble_evt_type) {
 			case ESP_BLE_EVT_CONN_ADV:
-				ESP_LOGI(TAG, "==> CONN_ADV");
-				ESP_LOGI(TAG, "BDA %x,%x,%x,%x,%x,%x:",scan_result->scan_rst.bda[0],
+				ESP_LOGI(TAG_BLE_CL, "==> CONN_ADV");
+				ESP_LOGI(TAG_BLE_CL, "BDA %x,%x,%x,%x,%x,%x:",scan_result->scan_rst.bda[0],
 								 scan_result->scan_rst.bda[1],scan_result->scan_rst.bda[2],
 												 scan_result->scan_rst.bda[3],scan_result->scan_rst.bda[4],
 												 scan_result->scan_rst.bda[5]);
-				ESP_LOGI(TAG, "==> RSSI: %d", scan_result->scan_rst.rssi);
-				ESP_LOGI(TAG, "==> address type: %d", scan_result->scan_rst.ble_addr_type);
+				ESP_LOGI(TAG_BLE_CL, "==> RSSI: %d", scan_result->scan_rst.rssi);
+				ESP_LOGI(TAG_BLE_CL, "==> address type: %d", scan_result->scan_rst.ble_addr_type);
 				/*esp_ble_gap_stop_scanning();
 				esp_err_t err = esp_ble_gattc_open(client_if, scan_result->scan_rst.bda, true);
-				ESP_LOGI(TAG, "==> esp_ble_gattc_open %d", err);*/
+				ESP_LOGI(TAG_BLE_CL, "==> esp_ble_gattc_open %d", err);*/
 				break;
 			case ESP_BLE_EVT_CONN_DIR_ADV:
-				ESP_LOGI(TAG, "==> CONN_DIR_ADV");
+				ESP_LOGI(TAG_BLE_CL, "==> CONN_DIR_ADV");
 				break;
 			case ESP_BLE_EVT_DISC_ADV:
-				ESP_LOGI(TAG, "==> DISC_ADV");
+				ESP_LOGI(TAG_BLE_CL, "==> DISC_ADV");
 				break;
 			case ESP_BLE_EVT_NON_CONN_ADV:
-				ESP_LOGI(TAG, "==> NON_CONN_ADV");
+				ESP_LOGI(TAG_BLE_CL, "==> NON_CONN_ADV");
 				break;
 			case ESP_BLE_EVT_SCAN_RSP:
-				ESP_LOGI(TAG, "==> receive scan response");
+				ESP_LOGI(TAG_BLE_CL, "==> receive scan response");
 				LOG_INFO("BDA %x,%x,%x,%x,%x,%x:",scan_result->scan_rst.bda[0],
 								 scan_result->scan_rst.bda[1],scan_result->scan_rst.bda[2],
 												 scan_result->scan_rst.bda[3],scan_result->scan_rst.bda[4],
@@ -707,18 +720,21 @@ void proc_httpStart(){
 //
 void ble_client_appRegister(void)
 {
-    LOG_INFO("register callback");
+//    LOG_INFO("register callback");
+    ESP_LOGI(TAG_BLE_CL , "register callback" );
     //register the scan callback function to the Generic Access Profile (GAP) module
     if ((status = esp_ble_gap_register_callback(esp_gap_cb)) != ESP_OK) {
         LOG_ERROR("gap register error, error code = %x", status);
         return;
     }
     //register the callback function to the Generic Attribute Profile (GATT) Client (GATTC) module
+    /*
     if ((status = esp_ble_gattc_register_callback(esp_gattc_cb)) != ESP_OK) {
         LOG_ERROR("gattc register error, error code = %x", status);
         return;
     }
     esp_ble_gattc_app_register(simpleClient_id);
+    */
     esp_ble_gap_set_scan_params(&ble_scan_params);
 }
 //
@@ -744,7 +760,7 @@ void app_main()
 
 	//WIFI
 	while (1) {
-		ESP_LOGI(TAG, "restart_task is running, nCount=%d, mStopFlg=%d\n", nCount ,mStopFlg);
+		ESP_LOGI(TAG_BLE_CL, "restart_task is running, nCount=%d, mStopFlg=%d\n", nCount ,mStopFlg);
 		vTaskDelay(1000 / portTICK_RATE_MS);
 		if(nCount >= nMaxSec){
 			dataModel_debug_printDat();

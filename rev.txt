@@ -1,0 +1,11 @@
+﻿# revision.txt
+
+## v 0.9.3 :2017/05/05
+client_bridge--fix, BLE receive process change.
+
+## v 0.9.2 :2017/05/01
+client_bridge --fix, BLE stop timer, etc
+
+## v 0.9.1 :2017/04/30
+ New
+

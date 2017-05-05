@@ -12,6 +12,7 @@ void dataModel_clear();
 void dataModel_debug_printDat();
 int dataModel_isComplete();
 int dataModel_recvCount();
+int dataModel_validAdvName(char *advname );
 
 void dataModel_clear();
 void dataModel_set_advName(int iNum,  char *adv_name );

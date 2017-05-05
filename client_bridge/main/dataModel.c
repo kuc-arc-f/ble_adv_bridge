@@ -8,10 +8,10 @@ struct stParam{
 	char val_3[6+1];
 };
 struct stParam mParam[3];
-const int mMaxDat=3;
-
-const int mOK_CODE =1;
-const int mNG_CODE =0;
+static const int mMaxDat=3;
+static const int mAdvNamesize=3;
+static const int mOK_CODE =1;
+static const int mNG_CODE =0;
 
 //
 void dataModel_set_advName(int iNum, char *adv_name ){
@@ -51,7 +51,7 @@ void dataModel_set_datByAdvname(char *adv_name, char *value, int field ){
 }
 //
 void dataModel_get_datByAdvname(char *adv_name, int field ,char *cValue){
-	static char cRet[3+1];
+	//static char cRet[3+1];
 	for(int i=0; i< mMaxDat; i++){
 		if(strcmp(adv_name, mParam[i].adv_name )== 0){
 			if(field==1){
@@ -106,6 +106,18 @@ int dataModel_recvCount(){
 	}
 	printf("iCount2=%d\n", iCount2 );
 	if(iCount2 > 0){ ret= mOK_CODE;}
+	return ret;
+}
+
+//
+int dataModel_validAdvName(char *advname ){
+	int ret= mNG_CODE;
+	for(int i=0; i< mMaxDat; i++){
+		if(strncmp(advname , mParam[i].adv_name ,mAdvNamesize )== 0){
+			ret= mOK_CODE;
+			return ret;
+		}
+	}
 	return ret;
 }
 
