@@ -1,12 +1,12 @@
 ﻿# esp32 (BLE +WIFI) data transfer , wifi Bridge (BETA)
 
- Version: 0.9.2
+ Version: 0.9.3
 
  Author  : Kouji Nakashima / kuc-arc-f.com
 
  date    : 2017/04/30
 
- update :  2017/05/02
+ update :  2017/05/05
 ***
 
 ## thanks
