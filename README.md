@@ -36,5 +36,10 @@ https://github.com/samrjohnston/ESP32Projects
  Central device , receive and wifi transfer.
 
 
+***
+
+
+## Blog
+http://knaka0209.blogspot.jp/2017/04/esp32-10-advBridge.html
 
 
