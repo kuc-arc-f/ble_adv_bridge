@@ -36,6 +36,8 @@ https://github.com/samrjohnston/ESP32Projects
  Central device , receive and wifi transfer.
 
 
+<img src="https://raw.githubusercontent.com/kuc-arc-f/screen-img/master/esp32/ss-BLE-bridge-0501a.png" style="max-width : 100%; max-height: 600px;">
+
 ***
 
 
